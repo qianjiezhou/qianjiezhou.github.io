@@ -1,9 +1,9 @@
 ---
 layout: post
 title: nginx-quic文档
-date: 2020-09-29 23:18 +0800
-last_modified_at: 2020-10-01 01:08:25 +0800
-tags: nginx,QUIC,HTTP3
+date: 2021-11-24 16:40 +0800
+last_modified_at: 2021-11-24 16:41 +0800
+tags: [nginx,QUIC,HTTP3]
 grammar_cjkRuby: true
 toc:  true
 ---
@@ -14,7 +14,7 @@ toc:  true
 三.配置\
 四.客户端\
 五.故障排除\
-六.贡献\
+六.贡献
 
 
 ### 一.介绍
