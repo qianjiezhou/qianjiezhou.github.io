@@ -160,7 +160,48 @@ quic_gso on;
 *浏览器
 
 已知可用：Firefox 80+ 和 Chrome 85+（QUIC草案29+）
-
+一些特殊问题：有时浏览器可能会决定忽略 QUIC，或许可以通过缓存清除/重新启动解决。始终检查access.log和error.log以确保您使用的是HTTP/3而不是TCP https。
+ + 要在 Firefox 中启用 QUIC，需要在“about:config”中设置以下内容：
 {% highlight js linenos %}
+ network.http.http3.enabled = true
+{% endhighlight %}
+		 
+ + 要在Chrome中启用QUIC，需要在命令行上启用，并在您的站点上强制启用：
+{% highlight js linenos %}
+ $ ./chrome --enable-quic --quic-version=h3-29 \
+                       --origin-to-force-quic-on=example.com:8443
+{% endhighlight %}
 
+*控制台客户端
+
+已知可用：ngtcp2,firefox的neqo和chromium的控制台客户端:
+{% highlight js linenos %}
+        $ examples/client 127.0.0.1 8443 https://example.com:8443/index.html
+        $ ./neqo-client https://127.0.0.1:8443/
+        $ chromium-build/out/my_build/quic_client http://example.com:8443 \
+                  --quic_version=h3-29 \
+                  --allow_unknown_root_cert \
+				  --disable_certificate_verification
+{% endhighlight %}
+
+如果你执行正确，在访问日志中，你应该可以看到如下内容：
+{% highlight js linenos %}
+   127.0.0.1 - - [24/Apr/2020:11:27:29 +0300] "GET / HTTP/3" 200 805 "-"
+                                         "nghttp3/ngtcp2 客户端" "quic"
+{% endhighlight %}
+
+### 五.故障排除
+
+以下的一些提示也许在你遇到问题时可以帮助你：
++ 确保您正在使用支持QUIC的SSL库进行构建
++ +确保在运行时使用正确的SSL库（`nginx-V`将显示您正在使用的内容）
++ 确保您的客户端实际发送QUIC请求（有关浏览器和缓存，请参阅“客户端”部分）
+ 例如，我们建议从简单的控制台客户端（如ngtcp2）开始，以确保在尝试使用可能对证书非常挑剔的真正浏览器之前正确配置了服务器。
+ + 使用调试支持构建nginx并检查调试日志。它应该包含有关连接的所有详细信息以及连接失败的原因。所有相关消息都包含“quic”前缀，可以轻松过滤掉。
+ + 如果想进行更深入的调查，可以在src/event/quic/ngx_event_quic_connection.h:中启用其他调试：
+  {% highlight js linenos %}
+		#define NGX_QUIC_DEBUG_PACKETS
+        #define NGX_QUIC_DEBUG_FRAMES
+        #define NGX_QUIC_DEBUG_ALLOC
+        #define NGX_QUIC_DEBUG_CRYPTO
 {% endhighlight %}
