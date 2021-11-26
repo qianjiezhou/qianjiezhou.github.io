@@ -2,7 +2,7 @@
 layout: post
 title: nginx-quic文档
 date: 2021-11-24 16:40 +0800
-last_modified_at: 2021-11-24 16:41 +0800
+last_modified_at: 2021-11-26 16:41 +0800
 tags: [nginx,QUIC,HTTP3]
 grammar_cjkRuby: true
 toc:  true
@@ -13,8 +13,7 @@ toc:  true
 二.安装\
 三.配置\
 四.客户端\
-五.故障排除\
-六.贡献
+五.故障排除
 
 
 ### 一.介绍
@@ -72,4 +71,96 @@ $ make
   --with-http_v3_module     - enable QUIC and HTTP/3
   --with-http_quic_module   - enable QUIC for older HTTP versions
   --with-stream_quic_module - enable QUIC in Stream
+{% endhighlight %}
+
+### 三.配置
+
+HTTP"listen"指令有两个新选项：“http3”和“quic”。\
+“http3”选项在指定端口上通过QUIC启用HTTP/3。\
+“quic”选项在此端口上为旧HTTP版本启动QUIC。
+
+Stream“listen”指令有一个新选项“quic”，它使QUIC作为客户端传输协议而不是TCP或普通UDP。
+
+除了“http3”或“quic”之外，您还必须指定“reuseport”选项，以使其能够与多个工作程序正常工作。
+
+添加了许多指定传输参数值的指令：
+{% highlight js linenos %}
+		quic_max_idle_timeout
+        quic_max_ack_delay
+        quic_max_udp_payload_size
+        quic_initial_max_data
+        quic_initial_max_stream_data_bidi_local
+        quic_initial_max_stream_data_bidi_remote
+        quic_initial_max_stream_data_uni
+        quic_initial_max_streams_bidi
+        quic_initial_max_streams_uni
+        quic_ack_delay_exponent
+        quic_disable_active_migration
+        quic_active_connection_id_limit
+{% endhighlight %}
+
+启用地址验证：
+{% highlight js linenos %}
+quic_retry on;
+{% endhighlight %}
+启用0-RTT
+{% highlight js linenos %}
+ssl_early_data on;
+{% endhighlight %}
+确保配置了QUIC所需的TLS 1.3：
+{% highlight js linenos %}
+ssl_protocols TLSv1.3;
+{% endhighlight %}
+启用GSO（通用分段卸载）：
+{% highlight js linenos %}
+quic_gso on;
+{% endhighlight %}
+默认情况下，此Linux特定优化已禁用。如果您的网络接口配置为支持GSO，则启用。
+
+添加了许多配置HTTP/3的指令：
+{% highlight js linenos %}
+        http3_max_table_capacity
+        http3_max_blocked_streams
+        http3_max_concurrent_pushes
+        http3_push
+        http3_push_preload
+{% endhighlight %}
+
+增加了一个额外的可用变量$quic。\
+如果使用 QUIC 连接，则 $quic的值为“quic”，否则为空字符串。
+
+示例配置：
+{% highlight js linenos %}
+    http {
+        log_format quic '$remote_addr - $remote_user [$time_local] '
+                        '"$request" $status $body_bytes_sent '
+                        '"$http_referer" "$http_user_agent" "$quic"';
+
+        access_log logs/access.log quic;
+
+        server {
+            # for better compatibility it's recommended
+            # to use the same port for quic and https
+            listen 8443 http3 reuseport;
+            listen 8443 ssl;
+
+            ssl_certificate     certs/example.com.crt;
+            ssl_certificate_key certs/example.com.key;
+            ssl_protocols       TLSv1.3;
+
+            location / {
+                # required for browsers to direct them into quic port
+                add_header Alt-Svc 'h3=":8443"; ma=86400';
+            }
+        }
+    }
+{% endhighlight %}
+
+### 四.客户端
+*浏览器
+
+已知可用：Firefox 80+ 和 Chrome 85+（QUIC草案29+）
+
+{% highlight js linenos %}
+
 {% endhighlight %}
