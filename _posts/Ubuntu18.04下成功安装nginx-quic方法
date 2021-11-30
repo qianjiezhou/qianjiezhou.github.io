@@ -30,5 +30,30 @@ You can either do not enable the modules, or install the OpenSSL library
 into the system, or build the OpenSSL library statically from the source
 with nginx by using --with-openssl=<path> option.
 {% endhighlight %}
-
-###### 4.
+###### 4.在尝试多个版本后，发现此版本OpenSSL可以正常使用
+{% highlight js linenos %}
+$ git clone --depth 1 -b OpenSSL_1_1_1g-quic-draft-28 https://github.com/tatsuhiro-t/openssl
+$ cd openssl
+$ ./config enable-tls1_3 --openssldir=/etc/ssl
+$ make -j$(nproc)
+$ sudo make install_sw
+{% endhighlight %}
+###### 5.编译nginx-quic
+{% highlight js linenos %}
+$ cd ../nginx-quic/
+$ ./auto/configure --with-debug --with-http_v3_module \
+			                 --with-cc-opt="-I../boringssl/include" \
+			                 --with-ld-opt="-L../boringssl/build/ssl  -L../boringssl/build/crypto"
+{% endhighlight %}
+如果还是提示“./auto/configure: error: SSL modules require the OpenSSL library.”，请使用：
+{% highlight js linenos %}
+$ ./auto/configure --with-debug --with-http_v3_module \
+			                 --with-cc-opt="-I../boringssl/include" \
+			                 --with-ld-opt="-L../boringssl/build/ssl  -L../boringssl/build/crypto"\
+							 --with-openssl=<path>
+{% endhighlight %}
+###### 6.安装nginx-quic
+{% highlight js linenos %}
+$ sudo make install
+{% endhighlight %}
+经过些许等待后，就安装完成了。
